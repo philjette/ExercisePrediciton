@@ -1,0 +1,78 @@
+---
+title: "Exercise Prediction"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Practical Machine Learning Assignment
+
+#High Level Overview
+
+```{r}
+library(caret)
+library(dplyr)
+```
+
+#Getting and Cleaning Data
+First we download the datasets. We won't use the testing set at all until it's time to predict the quiz results
+as such, we'll partition the training set again into training/testing to validate the model prior to submitting results
+
+```{r}
+training <- read.csv(url("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"),na.strings=c("NA","#DIV/0!","")
+                     ,stringsAsFactors = F)
+testing  <- read.csv(url("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"),na.strings=c("NA","#DIV/0!","")
+                     ,stringsAsFactors = F)
+```
+
+We want to keep only fields where > 50% aren't NA
+```{r}
+training<-training[, colSums(is.na(training)) < nrow(training) * 0.5]
+```
+ 
+We also get rid of ID fields, which make up the first 8 cols
+```{r}
+training <- training[, -(1:8)]
+```
+ 
+Having cleaned up the training set, we need to get rid of fields in Testing set not included in Training set.
+We keep the "problem_id" field which doesn't exist in training however. This leaves 52 fields in each.
+
+```{r}
+testing<-testing[,(names(testing) %in% c(names(training),"problem_id"))]
+dim(training)
+dim(testing)
+```
+
+#Partitioning Training and Test Sets - Cross Validation
+
+As discussed above, since we won't use the testing set until model submission, we create a partition with the training dataset in order to validate the model. This is our (simple) cross-validation step to avoid overfitting the model.
+we'll keep 70% of the dataset for training.
+
+```{r}
+inTrain  <- createDataPartition(training$classe, p=0.7, list=FALSE)
+partTrain <- training[inTrain, ]
+partTest  <- training[-inTrain, ]
+```
+
+#Building and validating the model
+
+We'll be using a Random Forest model for prediction. First we build the model using our partitioned training data
+```{r}
+set.seed(111)
+control <- trainControl(method="cv", 5)
+modFit <- train(classe ~ ., data=partTrain, method="rf", trControl=control, ntree=250)
+```
+ 
+Then we'll use the mdoel on our partitioned test set, and use the model accuracy to estimate Out of Sample Error
+```{r}
+predict_model <- predict(modFit, partTest)
+```
+
+#Results 
+```{r}
+confusionMatrix(partTest$classe, predict_model)
+```
+Based on the above data, the model is 99.2% accurate. this gives an Out of Sample Error Rate of < 1%. This is quite incredible, yet having used cross-validation and only run the model to predict the test set once, we're confident not to have overfit.
