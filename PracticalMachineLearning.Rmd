@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Practical Machine Learning Assignment
 
 #High Level Overview
+In this project, we'll use use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants in order to classify how a given exercise was performed. Participants in this study were asked to perform barbell lifts in 5 different ways (correctly and incorrectly). We will fit a model using random forests, and apply this model to a testing set to classify each lift.
 
 ```{r}
 library(caret)
